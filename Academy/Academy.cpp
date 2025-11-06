@@ -89,11 +89,30 @@ public:
 	{
 		cout << "HDestructor:\t" << this << endl;
 	}
-	virtual void info()const
+	virtual std::ostream& info(std::ostream& os)const
 	{
-		cout << LAST_NAME << " " << FIRST_NAME << " " << get_age() << endl;
+		return os << LAST_NAME << " " << FIRST_NAME << " " << get_age();
 	}
+	/*
+	-----------------------------
+	__vfptr - Virtual Functions Pointers (Таблица указателей на виртуальные функции)
+	virtual type name(parameters) modifiers
+	{
+		......;
+		......;
+		......;
+	}
+	-----------------------------
+	*/
 };
+std::ostream& operator<<(std::ostream& os, const Human& obj)
+{
+	return obj.info(os);
+	/*return os
+		<< obj.get_last_name()
+		<< " " << obj.get_first_name()
+		<< " " << obj.get_age();*/
+}
 
 #define ACADEMY_MEMBER_TAKE_PARAMETERS const std::string& speciality
 #define ACADEMY_MEMBER_GIVE_PARAMETERS speciality
@@ -118,15 +137,16 @@ public:
 	{
 		cout << "AMDestructor:\t" << this << endl;
 	}
-	void info()const override
+	std::ostream& info(std::ostream& os)const override
 	{
-		Human::info();	//Вызываем метод info() для класса 'Human'.
-		cout << speciality << endl;
+		return Human::info(os) << " " << speciality;
+		//Human::info(os);	//Вызываем метод info() для класса 'Human'.
+		//cout << speciality << endl;
 	}
 };
 
 #define STUDENT_TAKE_PARAMETERS const std::string& group, double rating, double attendance
-#define STUDENT_GIVE_PARAMETERS const group, rating, attendance
+#define STUDENT_GIVE_PARAMETERS group, rating, attendance
 class Student :public AcademyMember
 {
 	std::string group;
@@ -173,10 +193,11 @@ public:
 	}
 
 	//			/Methods:
-	void info()const override
+	std::ostream& info(std::ostream& os)const override
 	{
-		AcademyMember::info();
-		cout << group << " " << rating << " " << attendance << endl;
+		return AcademyMember::info(os) << " " << group << " " << rating << " " << attendance;
+		//AcademyMember::info();
+		//cout << group << " " << rating << " " << attendance << endl;
 	}
 };
 
@@ -206,10 +227,48 @@ public:
 		cout << "TDestructor:\t" << this << endl;
 	}
 	//				Methods:
-	void info()const override
+	std::ostream& info(std::ostream& os)const
 	{
-		AcademyMember::info();
-		cout << experience << endl;
+		return AcademyMember::info(os) << " " << experience;
+		//AcademyMember::info();
+		//cout << experience << endl;
+	}
+};
+
+#define GRADUATE_TAKE_PARAMETERS const std::string& subject
+#define GRADUATE_GIVE_PARAMETERS subject
+class Graduate :public Student
+{
+	std::string subject;
+public:
+	const std::string& get_subject()const
+	{
+		return subject;
+	}
+	void set_subject(const std::string& subject)
+	{
+		this->subject = subject;
+	}
+	Graduate
+	(
+		HUMAN_TAKE_PARAMETERS,
+		ACADEMY_MEMBER_TAKE_PARAMETERS,
+		STUDENT_TAKE_PARAMETERS,
+		GRADUATE_TAKE_PARAMETERS
+	) :Student(HUMAN_GIVE_PARAMETERS, ACADEMY_MEMBER_GIVE_PARAMETERS, STUDENT_GIVE_PARAMETERS)
+	{
+		set_subject(subject);
+		cout << "GConstructor:\t" << this << endl;
+	}
+	~Graduate()
+	{
+		cout << "GDestructor:\t" << this << endl;
+	}
+	std::ostream& info(std::ostream& os)const override
+	{
+		return Student::info(os) << " " << subject;
+		//Student::info();
+		//cout << subject << endl;
 	}
 };
 
@@ -233,21 +292,22 @@ void main()
 	Teacher teacher("Einstein", "Albert", "1979.03.14", "Astronomy", 20);
 	teacher.info();
 #endif // INHERITANCE
-
+	//Generalisation - обобщение;
+	//Upcast - это приведение дочернего объекта к базовому типу;
 	Human* group[] =
 	{
 		new Student("Чухарев", "Матвей", "2009.09.02", "Разработка программного обеспечения", "P_421", 100, 100),
 		new Teacher("Einstein", "Albert", "1979.03.14", "Astronomy", 20),
 		new Student("Гусев", "Савелий", "2010.08.29", "Разработка программного обеспечения", "P_421",98,98),
 		new Teacher("Олег", "Анатольевич","1985.01.16", "Разработка программного обеспечения", 16),
-		new Student("Львов", "Константин", "2009.09.21", "Разработка программного обеспечения", "P_421", 100, 98)
+		new Graduate("Львов", "Константин", "2009.09.21", "Разработка программного обеспечения", "P_421", 100, 98, "Разработка системы доставки пиццы")
 	};
 	cout << sizeof(group) << endl;
 	cout << delimiter << endl;
 	for (int i = 0; i < sizeof(group) / sizeof(group[0]); i++)
 	{
-		group[i]->info();
+		//group[i]->info();
+		//<< - оператор перенаправления в поток
+		cout << *group[i] << endl;
 		cout << delimiter << endl;
 	}
-
-}
