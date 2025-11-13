@@ -1,5 +1,7 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #include<iostream>
+#include<fstream>
+#include<sstream>
 #include<string>
 #include<time.h>
 using std::cin;
@@ -26,21 +28,32 @@ using std::endl;
 //#ifdef MACROS ... #endif
 class Human
 {
-	const std::string LAST_NAME;
-	const std::string FIRST_NAME;
-	const tm BIRTH_DATE;
+	static const int TYPE_WIDTH = 9;
+	static const int LAST_NAME_WIDTH = 12;
+	static const int FIRST_NAME_WIDTH = 12;
+	static const int AGE_WIDTH = 5;
+	static const int TIMESTAMP_WIDTH = 11;
+
+	std::string last_name;
+	std::string first_name;
+	tm birth_date;
 public:
 	const std::string& get_last_name()const
 	{
-		return LAST_NAME;
+		return last_name;
 	}
 	const std::string& get_first_name()const
 	{
-		return FIRST_NAME;
+		return first_name;
 	}
 	tm get_birth_date()const
 	{
-		return BIRTH_DATE;
+		return birth_date;
+	}
+	time_t get_birth_date_timestamp()const
+	{
+		tm birth_date = this->birth_date;
+		return mktime(&birth_date);
 	}
 	int get_age()const
 	{
@@ -48,7 +61,7 @@ public:
 		time_t t_today = time(NULL);
 		tm tm_today = *localtime(&t_today);
 		//2) Преобразуем дату рождения в формат Timestamp:
-		tm birth_date = BIRTH_DATE;
+		tm birth_date = this->birth_date;
 		time_t t_birth_date = mktime(&birth_date);
 
 		//3) Находим разницу во времени:
@@ -81,7 +94,7 @@ public:
 		return tm_birth_date;
 	}
 	Human(HUMAN_TAKE_PARAMETERS) :
-		LAST_NAME(last_name), FIRST_NAME(first_name), BIRTH_DATE(parse_date(birth_date))
+		last_name(last_name), first_name(first_name), birth_date(parse_date(birth_date))
 	{
 		cout << "HConstructor:\t" << this << endl;
 	}
@@ -91,8 +104,42 @@ public:
 	}
 	virtual std::ostream& info(std::ostream& os)const
 	{
-		return os << LAST_NAME << " " << FIRST_NAME << " " << get_age();
+		//return os << LAST_NAME << " " << FIRST_NAME << " " << get_age();
+		os.width(TYPE_WIDTH);
+		os << std::left;
+		os << std::string(typeid(*this).name() + 6) + ":";
+		os.width(LAST_NAME_WIDTH);
+		os << last_name;
+		os.width(FIRST_NAME_WIDTH);
+		os << first_name;
+		os.width(AGE_WIDTH);
+		os << get_age();
+		return os;
 	}
+	virtual std::ofstream& write(std::ofstream& os)const
+	{
+		//return os << LAST_NAME << " " << FIRST_NAME << " " << get_age();
+		os.width(TYPE_WIDTH);
+		os << std::left;
+		os << std::string(typeid(*this).name() + 6) + ":";
+		os.width(LAST_NAME_WIDTH);
+		os << last_name;
+		os.width(FIRST_NAME_WIDTH);
+		os << first_name;
+		os.width(TIMESTAMP_WIDTH);
+		os << get_birth_date_timestamp();
+		return os;
+	}
+
+	virtual std::ifstream& read(std::ifstream& ifs)
+	{
+		ifs >> last_name >> first_name;
+		time_t birth_date_timestamp;
+		ifs >> birth_date_timestamp;
+		this->birth_date = *localtime(&birth_date_timestamp);
+		return ifs;	//ifs - input file stream
+	}
+
 	/*
 	-----------------------------
 	__vfptr - Virtual Functions Pointers (Таблица указателей на виртуальные функции)
@@ -113,11 +160,20 @@ std::ostream& operator<<(std::ostream& os, const Human& obj)
 		<< " " << obj.get_first_name()
 		<< " " << obj.get_age();*/
 }
+std::ofstream& operator<<(std::ofstream& ofs, const Human& obj)
+{
+	return obj.write(ofs);
+}
+std::ifstream& operator>>(std::ifstream& ifs, Human& obj)
+{
+	return obj.read(ifs);
+}
 
 #define ACADEMY_MEMBER_TAKE_PARAMETERS const std::string& speciality
 #define ACADEMY_MEMBER_GIVE_PARAMETERS speciality
 class AcademyMember :public Human
 {
+	const int SPECIALITY_WIDTH = 40;
 	std::string speciality;
 public:
 	const std::string get_speciality()const
@@ -139,9 +195,28 @@ public:
 	}
 	std::ostream& info(std::ostream& os)const override
 	{
-		return Human::info(os) << " " << speciality;
+		//return Human::info(os) << " " << speciality;
+		Human::info(os);
+		os.width(SPECIALITY_WIDTH);
+		os << speciality;
+		return os;
 		//Human::info(os);	//Вызываем метод info() для класса 'Human'.
 		//cout << speciality << endl;
+	}
+	std::ofstream& write(std::ofstream& os)const override
+	{
+		Human::write(os);
+		os.width(SPECIALITY_WIDTH);
+		os << speciality;
+		return os;
+	}
+	std::ifstream& read(std::ifstream& ifs) override
+	{
+		Human::read(ifs);
+		char buffer[41] = {};
+		ifs.read(buffer, 40);
+		speciality = buffer;
+		return ifs;
 	}
 };
 
@@ -149,6 +224,9 @@ public:
 #define STUDENT_GIVE_PARAMETERS group, rating, attendance
 class Student :public AcademyMember
 {
+	static const int GROUP_WIDTH = 8;
+	static const int RATING_WIDTH = 8;
+	static const int ATTENDANCE_WIDTH = 8;
 	std::string group;
 	double rating;
 	double attendance;
@@ -195,9 +273,34 @@ public:
 	//			/Methods:
 	std::ostream& info(std::ostream& os)const override
 	{
-		return AcademyMember::info(os) << " " << group << " " << rating << " " << attendance;
+		//return AcademyMember::info(os) << " " << group << " " << rating << " " << attendance;
+		AcademyMember::info(os);
+		os.width(GROUP_WIDTH);
+		os << group;
+		os.width(RATING_WIDTH);
+		os << rating;
+		os.width(ATTENDANCE_WIDTH);
+		os << attendance;
+		return os;
 		//AcademyMember::info();
 		//cout << group << " " << rating << " " << attendance << endl;
+	}
+	std::ofstream& write(std::ofstream& os)const override
+	{
+		AcademyMember::write(os);
+		os.width(GROUP_WIDTH);
+		os << group;
+		os.width(RATING_WIDTH);
+		os << rating;
+		os.width(ATTENDANCE_WIDTH);
+		os << attendance;
+		return os;
+	}
+	virtual std::ifstream& read(std::ifstream& ifs)override
+	{
+		AcademyMember::read(ifs);
+		ifs >> group >> rating >> attendance;
+		return ifs;
 	}
 };
 
@@ -229,9 +332,22 @@ public:
 	//				Methods:
 	std::ostream& info(std::ostream& os)const
 	{
-		return AcademyMember::info(os) << " " << experience;
+		return AcademyMember::info(os) << experience;
 		//AcademyMember::info();
 		//cout << experience << endl;
+	}
+	std::ofstream& write(std::ofstream& os)const
+	{
+		AcademyMember::write(os) << experience;
+		return os;
+		//AcademyMember::info();
+		//cout << experience << endl;
+	}
+	std::ifstream& read(std::ifstream& ifs)override
+	{
+		AcademyMember::read(ifs);
+		ifs >> experience;
+		return ifs;
 	}
 };
 
@@ -270,9 +386,21 @@ public:
 		//Student::info();
 		//cout << subject << endl;
 	}
+	std::ifstream& read(std::ifstream& ifs)
+	{
+		Student::read(ifs);
+		std::getline(ifs, subject);
+		return ifs;
+	}
 };
 
+void Print(Human* group[], const int n);
+void Clear(Human* group[], const int n);
+void Save(Human* group[], const int n, const std::string& filename);
+Human** Load(const std::string& filename, int& count);
+
 //#define INHERITANCE
+//#define WRITE_TO_FILE
 
 void main()
 {
@@ -292,8 +420,10 @@ void main()
 	Teacher teacher("Einstein", "Albert", "1979.03.14", "Astronomy", 20);
 	teacher.info();
 #endif // INHERITANCE
+
+#ifdef WRITE_TO_FILE
 	//Generalisation - обобщение;
-	//Upcast - это приведение дочернего объекта к базовому типу;
+//Upcast - это приведение дочернего объекта к базовому типу;
 	Human* group[] =
 	{
 		new Student("Чухарев", "Матвей", "2009.09.02", "Разработка программного обеспечения", "P_421", 100, 100),
@@ -302,12 +432,111 @@ void main()
 		new Teacher("Олег", "Анатольевич","1985.01.16", "Разработка программного обеспечения", 16),
 		new Graduate("Львов", "Константин", "2009.09.21", "Разработка программного обеспечения", "P_421", 100, 98, "Разработка системы доставки пиццы")
 	};
+	Print(group, sizeof(group) / sizeof(group[0]));
+	Save(group, sizeof(group) / sizeof(group[0]), "group.txt");
+	/*
+	Полиморфизм (Polymorphism)
+	Polymorphism (poly - много, morphis - форма)
+	AdHoc polymorphism
+	Runtime polymorphism
+		1. Указатели на базовый класс;
+		2. Виртуальные функции; Specialization
+	*/
+#endif // WRITE_TO_FILE
+
+	int n = 0;
+	Human** group = Load("group.txt", n);
+	Print(group, n);
+	Clear(group, n);
+	group = nullptr;
+}
+void Print(Human* group[], const int n)
+{
 	cout << sizeof(group) << endl;
 	cout << delimiter << endl;
-	for (int i = 0; i < sizeof(group) / sizeof(group[0]); i++)
+	for (int i = 0; i < n; i++)
 	{
 		//group[i]->info();
 		//<< - оператор перенаправления в поток
 		cout << *group[i] << endl;
 		cout << delimiter << endl;
 	}
+}
+void Clear(Human* group[], const int n)
+{
+	for (int i = 0; i < n; i++)
+	{
+		delete group[i];
+	}
+	delete[] group;
+}
+
+void Save(Human* group[], const int n, const std::string& filename)
+{
+	std::ofstream fout(filename);
+	for (int i = 0; i < n; i++)
+	{
+		fout /*<< typeid(*group[i]).name() + 6 << ":"*/ << *group[i] << endl;
+	}
+	fout.close();
+	std::string cmd = "notepad ";
+	cmd += filename;
+	system(cmd.c_str());
+}
+Human* HumanFactory(const std::string& type)
+{
+	Human* human = nullptr;
+	if (type.find("Human") != std::string::npos)	human = new Human("", "", "");
+	if (type.find("Student") != std::string::npos)	human = new Student("", "", "", "", "", 0, 0);
+	if (type.find("Graduate") != std::string::npos)	human = new Graduate("", "", "", "", "", 0, 0, "");
+	if (type.find("Teacher") != std::string::npos)	human = new Teacher("", "", "", "", 0);
+	return human;
+}
+Human** Load(const std::string& filename, int& count)
+{
+	Human** group = nullptr;
+	count = 0;
+	std::ifstream fin(filename);
+	if (fin.is_open())
+	{
+		//1) Считаем количество объектов в файле:
+		std::string buffer;
+		while (!fin.eof())
+		{
+			std::getline(fin, buffer);
+			if (buffer.size() == 0)continue;
+			count++;	//Ключевое слово 'continue' прерывает текущую итерацию, и переходит к следующей.
+			//Ключевое слово 'break' прерывает текущую итерацию и все последующие.
+		}
+		if (count == 0)return nullptr;	//Если файл пуст, прерываем работу функции.
+		//2) Выделяем память под массив объектов:
+		group = new Human * [count] {};
+
+		//3) Производим возврат в начало, для того чтобы прочитать обеъекты:
+		cout << fin.tellg() << endl;
+		fin.clear();		//очищаем поток
+		fin.seekg(0);		//переходим в начало файла
+		cout << fin.tellg() << endl;
+
+		//4) Загружаем объекты из файла:
+		for (int i = 0; i < count; )
+		{
+			std::string type;
+			std::getline(fin, type, ':');//	До какого символа читать строку
+			if (type.size() == 0)continue;
+			//cout << type << endl;
+			group[i] = HumanFactory(type);
+			fin >> *group[i];
+			i++;
+			/*std::string object;
+			std::getline(fin, object);
+			cout << object << endl;*/
+		}
+	}
+	else
+	{
+		std::cerr << "Error:file not found" << endl;
+	}
+	fin.close();
+	return group;
+}
